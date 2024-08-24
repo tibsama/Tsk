@@ -4,7 +4,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $informations = $_POST['informations'];
 
     // Chemin du fichier où vous souhaitez enregistrer les informations
-    $fichier = 'chemin/vers/votre/dossier/informations.txt'; // Remplacez par le chemin correct
+    $fichier = 'informations.txt'; // Remplacez par le chemin correct
 
     // Vérifier si le fichier existe
     if (file_exists($fichier)) {
