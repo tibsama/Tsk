@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecteur vidéo avec téléchargement de segments</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        video {
+            width: 80%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lecteur vidéo avec téléchargement de segments</h1>
+    <video id="video" controls></video>
+    <button onclick="downloadAllSegments()">Télécharger tous les segments</button>
+
+    <!-- Bibliothèque hls.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        // URL du fichier .m3u8
+        const m3u8Url = "https://share22147.sharecloudy.com/files/aa/NW8h0rATKFoHRTBeXFdzxuJaH5kWkUb7Qkp.m3u8";
+
+        // Élément vidéo
+        const video = document.getElementById('video');
+
+        // Stocker les URLs des segments
+        let segmentUrls = [];
+
+        // Initialiser hls.js
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+
+            // Charger le fichier .m3u8
+            hls.loadSource(m3u8Url);
+            hls.attachMedia(video);
+
+            // Intercepter les segments pendant la lecture
+            hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                const segmentUrl = data.frag.url;
+                if (!segmentUrls.includes(segmentUrl)) {
+                    segmentUrls.push(segmentUrl); // Ajouter l'URL du segment à la liste
+                    console.log("Segment récupéré :", segmentUrl);
+                }
+            });
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play();
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Pour les navigateurs comme Safari qui prennent en charge HLS nativement
+            video.src = m3u8Url;
+            video.addEventListener('loadedmetadata', () => {
+                video.play();
+            });
+        }
+
+        // Fonction pour télécharger tous les segments
+        async function downloadAllSegments() {
+            if (segmentUrls.length === 0) {
+                alert("Aucun segment n'a été récupéré. Veuillez lire la vidéo d'abord.");
+                return;
+            }
+
+            for (let i = 0; i < segmentUrls.length; i++) {
+                const segmentUrl = segmentUrls[i];
+                const response = await fetch(segmentUrl);
+                const blob = await response.blob();
+                const downloadUrl = URL.createObjectURL(blob);
+
+                // Créer un lien de téléchargement
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `segment_${i + 1}.ts`; // Nom du fichier téléchargé
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                console.log(`Segment ${i + 1} téléchargé : ${segmentUrl}`);
+            }
+
+            alert("Tous les segments ont été téléchargés !");
+        }
+    </script>
+</body>
+</html>
