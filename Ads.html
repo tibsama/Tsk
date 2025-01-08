@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AdSense Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .ad-container {
+            margin: 20px auto;
+            max-width: 728px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to My Test Page</h1>
+    <p>This is an example of integrating a Google AdSense test ad.</p>
+
+    <div class="ad-container">
+        <!-- Google AdSense Test Ad -->
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3940256099942544"  <!-- Test AdSense ID -->
+             data-ad-slot="1234567890"                <!-- Test Ad Slot -->
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+</body>
+</html>
