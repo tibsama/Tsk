@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synopsis - StreamDZ</title>
+    <style>
+        /* Styles généraux */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            animation: fadeIn 1s ease-in-out; /* Effet de fondu */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        header {
+            background-color: #ff5500;
+            padding: 10px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 16px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        .synopsis-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .synopsis-container h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        .synopsis-container img {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .synopsis-container p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .movie-details {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .movie-details span {
+            margin: 0 10px;
+        }
+
+        .video-container {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .fullscreen-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #ff5500;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .fullscreen-btn:hover {
+            background-color: #ff7733;
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 4px solid #ff5500;
+            border-top: 4px solid transparent;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .bouncing-loader {
+            display: flex;
+            justify-content: center;
+            margin-top: 50px;
+        }
+
+        .bouncing-loader div {
+            width: 20px;
+            height: 20px;
+            margin: 0 5px;
+            background-color: #ff5500;
+            border-radius: 50%;
+            animation: bounce 0.6s infinite alternate;
+        }
+
+        .bouncing-loader div:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .bouncing-loader div:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+
+        .season {
+            margin-bottom: 20px;
+        }
+
+        .season h3 {
+            color: #ff5500;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .episodes-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .episode {
+            background-color: #444;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .watch-btn {
+            background-color: #ff5500;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .watch-btn:hover {
+            background-color: #ff7733;
+        }
+
+        .video-wrapper {
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        .video-wrapper .video-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        .video-wrapper .fullscreen-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #ff5500;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .video-wrapper .fullscreen-btn:hover {
+            background-color: #ff7733;
+        }
+    </style>
+    <!-- Intégration de hls.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Intégration de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/4.7.0/firebase.js"></script>
+</head>
+<body>
+    <header>
+        <h1>StreamDZ</h1>
+        <nav>
+            <a href="index.html">Accueil</a>
+            <a href="synopsis.html">Synopsis</a>
+            <a href="video.html">Voir la vidéo</a>
+        </nav>
+    </header>
+
+    <div class="synopsis-container">
+        <!-- Loaders animés -->
+        <div class="bouncing-loader" id="loader-container">
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+
+        <!-- Contenu du synopsis (caché initialement) -->
+        <div id="synopsis-content" style="display: none;">
+            <!-- Nom du film -->
+            <h2 id="movie-name"></h2>
+
+            <!-- Image du film -->
+            <img id="synopsis-image" src="" alt="Image de la synopsis">
+
+            <!-- Détails du film (date, langue, genre) -->
+            <div class="movie-details">
+                <span id="movie-date"></span>
+                <span id="movie-language"></span>
+                <span id="movie-genre"></span>
+            </div>
+
+            <!-- Synopsis -->
+            <p id="synopsis-text"></p>
+
+            <!-- Conteneur pour les saisons et épisodes -->
+            <div id="seasons-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDNo-zAANxCw6c9b_4RQGtqQLGueeMQ8nA",
+            authDomain: "herher-d121a.firebaseapp.com",
+            databaseURL: "https://herher-d121a.firebaseio.com",
+            projectId: "herher-d121a",
+            storageBucket: "herher-d121a.appspot.com",
+            messagingSenderId: "626438737297",
+            appId: "1:626438737297:web:bf6524275291ec695fde30"
+        };
+
+        // Initialiser Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // Référence à la base de données
+        const database = firebase.database().ref('StreamDZ');
+
+        // Variables globales
+        let x = 0; // Indicateur pour vérifier si l'opération a déjà été effectuée
+        let movie; // Pour stocker les détails du film
+        let currentVideoLink = null; // Pour stocker le lien de l'épisode sélectionné
+
+        // Fonction pour recevoir le code depuis l'application Android
+        function receiveCodeFromApp(code) {
+            if (x === 0) { // Vérifier si l'opération n'a pas déjà été effectuée
+                x = 1; // Marquer l'opération comme effectuée
+                console.log("Code reçu :", code);
+                loadMovieDetails(code); // Charger les détails du film
+            } else {
+                console.log("L'opération a déjà été effectuée.");
+            }
+        }
+
+        // Charger les détails du film depuis Firebase
+        function loadMovieDetails(code) {
+            database.child(code).once('value', (snapshot) => {
+                movie = snapshot.val();
+                if (movie) {
+                    // Masquer les loaders et afficher le contenu
+                    document.getElementById('loader-container').style.display = 'none';
+                    document.getElementById('synopsis-content').style.display = 'block';
+
+                    // Afficher les détails du film
+                    document.getElementById('movie-name').textContent = movie.nom || "Nom inconnu";
+                    document.getElementById('synopsis-image').src = movie.image || "";
+                    document.getElementById('movie-date').textContent = `Date : ${movie.date.split('-')[0] || "Non disponible"}`;
+                    document.getElementById('movie-language').textContent = `Langue : ${movie.langue || "Non disponible"}`;
+                    document.getElementById('movie-genre').textContent = `Genre : ${movie.genre || "Non disponible"}`;
+                    document.getElementById('synopsis-text').textContent = movie.synopsis || "Aucune synopsis disponible.";
+
+                    // Vérifier si movie.seasons est vide ou non défini
+                    if (!movie.seasons || Object.keys(movie.seasons).length === 0) {
+                        // Afficher directement le lecteur vidéo avec le lien movie.lien
+                        const videoContainer = document.createElement('div');
+                        videoContainer.className = 'video-wrapper';
+                        videoContainer.innerHTML = `
+                            <div class="video-container">
+                                <video controls preload="none">
+                                    Votre navigateur ne supporte pas la lecture de vidéos HLS.
+                                </video>
+                                <button class="fullscreen-btn" onclick="openVideoLink()">Plein écran</button>
+                            </div>
+                        `;
+
+                        // Ajouter le lecteur vidéo au conteneur synopsis-content
+                        document.getElementById('synopsis-content').appendChild(videoContainer);
+
+                        // Charger la vidéo correspondante
+                        const videoPlayer = videoContainer.querySelector('video');
+                        if (Hls.isSupported()) {
+                            const hls = new Hls();
+                            hls.loadSource(movie.lien);
+                            hls.attachMedia(videoPlayer);
+
+                            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                                videoPlayer.play(); // Lire la vidéo
+                            });
+                        } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                            // Support natif pour HLS (Safari)
+                            videoPlayer.src = movie.lien;
+                            videoPlayer.addEventListener('loadedmetadata', function () {
+                                videoPlayer.play(); // Lire la vidéo
+                            });
+                        } else {
+                            console.error("La lecture HLS n'est pas supportée par ce navigateur.");
+                        }
+
+                        // Stocker le lien de la vidéo
+                        currentVideoLink = movie.lien;
+                    } else {
+                        // Afficher les saisons et les épisodes
+                        displaySeasons(movie.seasons);
+                    }
+                } else {
+                    console.error("Film non trouvé dans la base de données.");
+                }
+            });
+        }
+
+        // Fonction pour afficher les saisons et les épisodes
+        function displaySeasons(seasons) {
+            const seasonsContainer = document.getElementById('seasons-container');
+
+            if (seasons && typeof seasons === 'object' && Object.keys(seasons).length > 0) {
+                Object.keys(seasons).forEach(seasonKey => {
+                    const season = seasons[seasonKey];
+                    const seasonDiv = document.createElement('div');
+                    seasonDiv.className = 'season';
+                    seasonDiv.innerHTML = `<h3>${season.name}</h3>`;
+
+                    const episodesList = document.createElement('ul');
+                    episodesList.className = 'episodes-list';
+
+                    if (season.episodes && typeof season.episodes === 'object') {
+                        Object.keys(season.episodes).forEach(episodeKey => {
+                            const episode = season.episodes[episodeKey];
+                            const episodeItem = document.createElement('li');
+                            episodeItem.className = 'episode';
+                            episodeItem.innerHTML = `
+                                <span>${episode.name}</span>
+                                <button class="watch-btn">Regarder</button>
+                            `;
+
+                            episodeItem.querySelector('.watch-btn').addEventListener('click', () => {
+                                // Supprimer le lecteur vidéo existant s'il y en a un
+                                const existingVideoWrapper = document.querySelector('.video-wrapper');
+                                if (existingVideoWrapper) {
+                                    existingVideoWrapper.remove();
+                                }
+
+                                // Créer un nouveau lecteur vidéo
+                                const videoWrapper = document.createElement('div');
+                                videoWrapper.className = 'video-wrapper';
+                                videoWrapper.innerHTML = `
+                                    <div class="video-container">
+                                        <video controls preload="none">
+                                            Votre navigateur ne supporte pas la lecture de vidéos HLS.
+                                        </video>
+                                        <button class="fullscreen-btn" onclick="openVideoLink()">Plein écran</button>
+                                    </div>
+                                `;
+
+                                // Insérer le lecteur vidéo sous l'épisode sélectionné
+                                episodeItem.after(videoWrapper);
+
+                                // Charger la vidéo correspondante
+                                const videoPlayer = videoWrapper.querySelector('video');
+                                if (Hls.isSupported()) {
+                                    const hls = new Hls();
+                                    hls.loadSource(episode.link);
+                                    hls.attachMedia(videoPlayer);
+
+                                    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                                        videoPlayer.play(); // Lire la vidéo
+                                    });
+                                } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                                    // Support natif pour HLS (Safari)
+                                    videoPlayer.src = episode.link;
+                                    videoPlayer.addEventListener('loadedmetadata', function () {
+                                        videoPlayer.play(); // Lire la vidéo
+                                    });
+                                } else {
+                                    console.error("La lecture HLS n'est pas supportée par ce navigateur.");
+                                }
+
+                                // Stocker le lien de l'épisode sélectionné
+                                currentVideoLink = episode.link;
+                            });
+
+                            episodesList.appendChild(episodeItem);
+                        });
+                    }
+
+                    seasonDiv.appendChild(episodesList);
+                    seasonsContainer.appendChild(seasonDiv);
+                });
+            } else {
+                seasonsContainer.innerHTML = "<p>Aucune saison disponible.</p>";
+            }
+        }
+
+        // Fonction pour ouvrir le lien de la vidéo dans un nouvel onglet
+        function openVideoLink() {
+            if (currentVideoLink) {
+                window.open(currentVideoLink, '_blank'); // Ouvrir le lien dans un nouvel onglet
+            } else {
+                console.error("Aucun lien vidéo trouvé.");
+            }
+        }
+
+       
+    </script>
+</body>
+</html>
