@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de G-code pour CNC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+        h1 {
+            color: #444;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-top: 20px;
+            background: #f9f9f9;
+        }
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        button {
+            background-color: #6200ea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background-color: #3700b3;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .contrast-slider {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .contrast-slider input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .contrast-slider label {
+            font-size: 14px;
+            color: #666;
+        }
+        .download-link {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #6200ea;
+            text-decoration: none;
+            display: inline-block;
+            transition: color 0.3s ease;
+        }
+        .download-link:hover {
+            color: #3700b3;
+        }
+        .fa-icon {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Générateur de G-code pour CNC</h1>
+        <input type="file" id="imageInput" accept="image/*" style="display: none;" />
+        <div class="buttons">
+            <button onclick="document.getElementById('imageInput').click()">
+                <i class="fas fa-image fa-icon"></i> Choisir une image
+            </button>
+            <button onclick="convertToMonochrome()">
+                <i class="fas fa-moon fa-icon"></i> Transformer en monochrome
+            </button>
+            <button onclick="detectEdges()">
+                <i class="fas fa-draw-polygon fa-icon"></i> Afficher les contours
+            </button>
+            <button onclick="generateMachineText()">
+                <i class="fas fa-download fa-icon"></i> Générer le texte machine
+            </button>
+        </div>
+        <div class="contrast-slider">
+            <label for="contrastRange">Seuil des contours :</label>
+            <input type="range" id="contrastRange" min="0" max="255" value="50" oninput="detectEdges()" />
+        </div>
+        <canvas id="canvasOutput"></canvas>
+    </div>
+
+    <script>
+        let imgElement = new Image();
+        let canvasOutput = document.getElementById('canvasOutput');
+        let ctx = canvasOutput.getContext('2d');
+        let originalImageData = null;
+
+        // Lorsqu'une image est sélectionnée
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            let file = event.target.files[0];
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                imgElement.src = e.target.result;
+                imgElement.onload = function() {
+                    canvasOutput.width = imgElement.width;
+                    canvasOutput.height = imgElement.height;
+                    ctx.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height);
+                    originalImageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Fonction pour transformer l'image en monochrome
+        function convertToMonochrome() {
+            if (!imgElement.src) {
+                alert("Veuillez d'abord choisir une image.");
+                return;
+            }
+
+            // Dessiner l'image sur le canvas
+            ctx.drawImage(imgElement, 0, 0, canvasOutput.width, canvasOutput.height);
+
+            // Obtenir les données de l'image
+            let imageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+            let data = imageData.data;
+
+            // Transformer chaque pixel en niveaux de gris
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];     // Composante rouge
+                let g = data[i + 1]; // Composante verte
+                let b = data[i + 2]; // Composante bleue
+
+                // Formule pour convertir en niveaux de gris (luminosité)
+                let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                // Appliquer la valeur de gris à chaque composante
+                data[i] = gray;     // Rouge
+                data[i + 1] = gray; // Vert
+                data[i + 2] = gray; // Bleu
+                // La composante alpha (data[i + 3]) reste inchangée
+            }
+
+            // Réinsérer les données modifiées dans le canvas
+            ctx.putImageData(imageData, 0, 0);
+            originalImageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+        }
+
+        // Fonction pour détecter et afficher les contours
+        function detectEdges() {
+            if (!imgElement.src) {
+                alert("Veuillez d'abord choisir une image.");
+                return;
+            }
+
+            // Convertir l'image en monochrome si ce n'est pas déjà fait
+            convertToMonochrome();
+
+            // Obtenir les données de l'image
+            let imageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+            let data = imageData.data;
+
+            // Créer un tableau pour stocker les gradients
+            let gradients = new Array(data.length / 4).fill(0);
+
+            // Calculer les gradients (approximation de Sobel)
+            for (let y = 1; y < canvasOutput.height - 1; y++) {
+                for (let x = 1; x < canvasOutput.width - 1; x++) {
+                    let i = (y * canvasOutput.width + x) * 4;
+
+                    // Calculer les gradients en X et Y
+                    let gx = -data[i - 4] + data[i + 4] +
+                             -2 * data[i - 4 + canvasOutput.width * 4] + 2 * data[i + 4 + canvasOutput.width * 4] +
+                             -data[i - 4 + canvasOutput.width * 8] + data[i + 4 + canvasOutput.width * 8];
+
+                    let gy = data[i - 4 - canvasOutput.width * 4] + 2 * data[i - canvasOutput.width * 4] + data[i + 4 - canvasOutput.width * 4] +
+                             -data[i - 4 + canvasOutput.width * 4] - 2 * data[i + canvasOutput.width * 4] - data[i + 4 + canvasOutput.width * 4];
+
+                    // Magnitude du gradient
+                    gradients[i / 4] = Math.sqrt(gx * gx + gy * gy);
+                }
+            }
+
+            // Appliquer un seuil pour détecter les contours
+            let threshold = parseFloat(document.getElementById('contrastRange').value);
+            for (let i = 0; i < data.length; i += 4) {
+                let gradient = gradients[i / 4];
+                if (gradient > threshold) {
+                    data[i] = 255;     // Rouge (contours en blanc)
+                    data[i + 1] = 255; // Vert
+                    data[i + 2] = 255; // Bleu
+                } else {
+                    data[i] = 0;       // Rouge (fond en noir)
+                    data[i + 1] = 0;   // Vert
+                    data[i + 2] = 0;   // Bleu
+                }
+            }
+
+            // Réinsérer les données modifiées dans le canvas
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Fonction pour générer le texte machine
+        function generateMachineText() {
+            if (!imgElement.src) {
+                alert("Veuillez d'abord choisir une image.");
+                return;
+            }
+
+            // Obtenir les données de l'image des contours
+            let imageData = ctx.getImageData(0, 0, canvasOutput.width, canvasOutput.height);
+            let data = imageData.data;
+
+            // Créer un tableau pour stocker les points des contours
+            let points = [];
+
+            // Parcourir les pixels de l'image
+            for (let y = 0; y < canvasOutput.height; y++) {
+                for (let x = 0; x < canvasOutput.width; x++) {
+                    let i = (y * canvasOutput.width + x) * 4;
+
+                    // Si le pixel est blanc (contour)
+                    if (data[i] === 255 && data[i + 1] === 255 && data[i + 2] === 255) {
+                        // Ajouter le point au tableau
+                        points.push({ x: x, y: y });
+                    }
+                }
+            }
+
+            // Générer le texte machine
+            let machineText = "";
+            for (let i = 0; i < points.length; i++) {
+                let x = points[i].x;
+                let y = points[i].y;
+                let z = 1; // Z = 1 pour les contours
+
+                // Ajouter la commande au texte machine
+                machineText += `@x=${x},y=${y},z=${z}#`;
+            }
+
+            // Télécharger le fichier texte
+            let blob = new Blob([machineText], { type: "text/plain" });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            a.href = url;
+            a.download = "contours.txt";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
